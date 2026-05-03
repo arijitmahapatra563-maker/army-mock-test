@@ -22,13 +22,43 @@ body{font-family:Arial;margin:0;background:white;}
 .attempted{background:skyblue !important;}
 .timer{position:absolute;right:20px;top:15px;font-weight:bold;color:red;}
 button{padding:10px 20px;border:none;background:#0f172a;color:white;border-radius:6px;cursor:pointer;margin-top:10px;}
-.submit-btn{position:fixed;bottom:20px;right:20px;}
+.submit-btn{
+position:fixed;
+bottom:20px;
+right:20px;
+padding:18px 35px;
+font-size:22px;
+font-weight:bold;
+border-radius:14px;
+display:none;
+background:#dc2626;
+z-index:999;
+}
 .review-card{margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:6px;}
 .correct{color:green;}
 .wrong{color:red;}
 .admin-btn{position:fixed;top:10px;right:10px;}
 input,select{padding:10px;width:100%;margin:5px 0;}
-.watermark{position:fixed;bottom:10px;right:15px;opacity:0.12;font-size:20px;font-weight:bold;}
+.watermark{
+position:fixed;
+bottom:15px;
+right:20px;
+opacity:0.15;
+font-size:42px;
+font-weight:bold;
+}
+#sectionTabs{
+display:flex;
+gap:10px;
+margin:20px 0;
+flex-wrap:wrap;
+}
+
+#sectionTabs button{
+background:#2563eb;
+padding:10px 18px;
+font-weight:bold;
+}
 </style>
 </head>
 
@@ -39,33 +69,39 @@ input,select{padding:10px;width:100%;margin:5px 0;}
 
 <div class="container">
 
-<!-- Name + Phone Input Screen -->
 <div id="nameScreen" class="card">
-<h3>Enter Your Name & Phone to Start</h3>
-<input id="username" placeholder="Your Name">
-<input id="userPhone" placeholder="Phone Number">
+<h3>Enter Your Name & Phone</h3>
+<input id="username" placeholder="Name">
+<input id="phone" placeholder="Phone (+91...)">
 <button onclick="startQuiz()">Start Test</button>
 </div>
 
-<!-- Quiz Screen -->
 <div id="quizScreen" class="card" style="display:none">
 <div class="timer">Time Left: <span id="time">60:00</span></div>
+<div id="sectionTabs">
+<button onclick="filterSection('Math')">Math</button>
+<button onclick="filterSection('Reasoning')">Reasoning</button>
+<button onclick="filterSection('GK')">GK</button>
+<button onclick="filterSection('GS')">GS</button>
+</div>
 <div class="qno" id="qno"></div>
 <div class="section" id="section"></div>
 <div class="question" id="question"></div>
 <div id="options"></div>
 <button onclick="prevQ()">Previous</button>
-<button onclick="nextQ()">Next</button>
+<button onclick="saveAndNext()">Save & Next</button>
+<button onclick="clearResponse()">Clear Response</button>
+
 <div>Attempted: <span id="attemptCount">0</span>/50</div>
 <div class="palette" id="palette"></div>
 </div>
 
-<!-- Result Screen -->
 <div id="resultScreen" class="card" style="display:none"></div>
 
 </div>
 
-<button class="submit-btn" onclick="submitQuiz()">Submit</button>
+<button class="submit-btn" id="submitBtn" onclick="submitQuiz()">SUBMIT TEST</button>
+
 <div class="watermark">MISSION ARMY BY ARIJIT</div>
 
 <script>
@@ -78,18 +114,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// VARIABLES
 let questions = [];
+let allQuestions = [];
 let current = 0;
 let answers = [];
 let seconds = 3600, timer;
+let activeSection = "All";
+let sectionAnswers = {
+Math: [],
+Reasoning: [],
+GK: [],
+GS: []
+};
+
 
 const username = document.getElementById("username");
-const userPhone = document.getElementById("userPhone");
+const phone = document.getElementById("phone");
 const nameScreen = document.getElementById("nameScreen");
 const quizScreen = document.getElementById("quizScreen");
 const resultScreen = document.getElementById("resultScreen");
-
 const qno = document.getElementById("qno");
 const section = document.getElementById("section");
 const question = document.getElementById("question");
@@ -97,80 +140,173 @@ const options = document.getElementById("options");
 const palette = document.getElementById("palette");
 const attemptCount = document.getElementById("attemptCount");
 const time = document.getElementById("time");
+const submitBtn = document.getElementById("submitBtn");
 
 // LOAD QUESTIONS
-loadQuestions();
 function loadQuestions(){
-  db.collection("questions").get().then(snapshot=>{
-    questions=[];
-    snapshot.forEach(doc=>{
-      questions.push({...doc.data(), id:doc.id});
-    });
-    questions.sort(()=>Math.random()-0.5);
-    questions = questions.slice(0,50);
-    answers = Array(questions.length).fill(null);
-  });
+db.collection("questions").get().then(snapshot=>{
+allQuestions=[];
+
+snapshot.forEach(doc=>{
+allQuestions.push({...doc.data(), id:doc.id});
+});
+});
 }
 
-// ===================== START QUIZ =====================
+function filterSection(sec){
+  activeSection = sec;
+
+  questions = allQuestions.filter(q => q.section === sec);
+
+  if(!questions.length){
+    alert("No questions in this section");
+    return;
+  }
+
+  current = 0;
+
+  if(!sectionAnswers[sec]){
+    sectionAnswers[sec] = Array(questions.length).fill(null);
+  }
+
+  // ❌ DO NOT do: answers = sectionAnswers[sec]
+  answers = sectionAnswers[sec].slice();
+
+  buildPalette();
+  loadQ();
+}
+
 function startQuiz(){
-  if(!username.value || !userPhone.value) return alert("Enter both Name and Phone");
+if(!username.value || !phone.value) return alert("Enter both Name and Phone");
 
-  db.collection("allowedUsers")
-    .where("name","==",username.value)
-    .where("phone","==",userPhone.value)
-    .get()
-    .then(snapshot=>{
-      if(snapshot.empty) return alert("You are not allowed 😢");
+db.collection("allowedUsers")
+.where("name","==",username.value)
+.where("phone","==",phone.value)
+.get()
+.then(snapshot=>{
+if(snapshot.empty) return alert("You are not allowed 😢");
 
-      nameScreen.style.display="none";
-      quizScreen.style.display="block";
-      buildPalette();
-      loadQ();
-      timer=setInterval(updateTimer,1000);
-    });
+nameScreen.style.display="none";
+quizScreen.style.display="block";
+submitBtn.style.display="block";
+activeSection = "All";
+questions = [...allQuestions];
+questions.sort(()=>Math.random()-0.5);
+questions = questions.slice(0,50);
+answers = Array(questions.length).fill(null);
+
+buildPalette();
+loadQ();
+timer=setInterval(updateTimer,1000);
+});
 }
 
-// ===================== LOAD QUESTION =====================
+     
+
+// LOAD QUESTION
 function loadQ(){
   const q=questions[current];
   qno.innerText=`Question ${current+1} / ${questions.length}`;
   section.innerText="Section: "+q.section;
   question.innerText=q.q;
   options.innerHTML="";
-  q.options.forEach((opt,i)=>{
-    const div=document.createElement("div");
-    div.className="option";
-    div.innerText=opt;
-    if(answers[current]===i) div.classList.add("selected");
-    div.onclick=()=>{
-      answers[current]=i;
-      updatePalette();
-      loadQ();
-    };
-    options.appendChild(div);
-  });
+q.options.forEach((opt,i)=>{
+  const div=document.createElement("div");
+  div.className="option";
+  div.innerText=opt;
+
+  if(answers[current]===i) div.classList.add("selected");
+
+  div.onclick = () => {
+    const sec = questions[current].section;
+
+    answers[current] = i;
+
+    if(!sectionAnswers[sec]){
+      sectionAnswers[sec] = [];
+    }
+
+    sectionAnswers[sec][current] = i;
+
+    updatePalette();
+
+    loadQ();   // 🔥 THIS IS THE FIX
+  };
+
+  options.appendChild(div);
+}); 
   attemptCount.innerText=answers.filter(a=>a!=null).length;
 }
+ 
+function saveAndNext(){
+  const sec = questions[current].section;
 
-function nextQ(){ if(current<questions.length-1){current++;loadQ();} }
-function prevQ(){ if(current>0){current--;loadQ();} }
+  // save answer
+  if(!sectionAnswers[sec]){
+    sectionAnswers[sec] = [];
+  }
 
+  sectionAnswers[sec][current] = answers[current];
+
+  // go next
+  if(current < questions.length - 1){
+    current++;
+    loadQ();
+  }
+}
+
+function prevQ(){
+  saveAnswer();
+  if(current > 0){
+    current--;
+    loadQ();
+  }
+}
+function saveAnswer(){
+  const sec = questions[current].section;
+  if(!sectionAnswers[sec]){
+    sectionAnswers[sec] = [];
+  }
+  sectionAnswers[sec][current] = answers[current];
+}
+function clearResponse(){
+
+if(!sectionAnswers[activeSection]){
+  sectionAnswers[activeSection] = [];
+}
+
+answers[current] = null;
+sectionAnswers[activeSection][current] = null;
+
+updatePalette();
+loadQ();
+}
 function buildPalette(){
   palette.innerHTML="";
-  answers.forEach((_,i)=>{
+
+  for(let i=0;i<questions.length;i++){
     const box=document.createElement("div");
     box.innerText=i+1;
-    box.onclick=()=>{current=i;loadQ();};
+
+    box.onclick=()=>{
+      saveAnswer();
+      current=i;
+      loadQ();
+    };
+
     palette.appendChild(box);
-  });
+  }
+
   updatePalette();
 }
 
 function updatePalette(){
   document.querySelectorAll(".palette div").forEach((box,i)=>{
     box.classList.remove("attempted");
-    if(answers[i]!=null) box.classList.add("attempted");
+
+    if(answers[i] != null){
+      box.classList.add("attempted");
+    }
   });
 }
 
@@ -182,54 +318,75 @@ function updateTimer(){
   seconds--;
 }
 
-// ===================== SUBMIT =====================
 function submitQuiz(){
-  clearInterval(timer);
-  let score=0;
-  questions.forEach((q,i)=>{
-    if(answers[i]===q.answer) score+=2;
-  });
+window.onbeforeunload = null;
+clearInterval(timer);
+submitBtn.style.display="none";
 
-  // Save login with score
-  db.collection("logins").add({
-    name: username.value,
-    phone: userPhone.value,
-    score: score,
-    time: new Date()
-  });
+let scores = {
+Math:0,
+Reasoning:0,
+GK:0,
+GS:0
+};
 
-  quizScreen.style.display="none";
-  resultScreen.style.display="block";
-  resultScreen.innerHTML=`
-    <h2>${username.value}</h2>
-    <h3>Score: ${score}</h3>
-    <button onclick="showReview()">Review Answers 🔥</button>
-    <button onclick="location.reload()">Restart</button>
-    <div id="reviewBox"></div>
-  `;
+for(let sec in sectionAnswers){
+let qs = allQuestions.filter(q=>q.section===sec);
+let ans = sectionAnswers[sec];
+for(let i=0;i<qs.length;i++){
+  if(sectionAnswers[sec][i] === qs[i].answer){
+    scores[sec] += 2;
+  }
+}
+}
+
+let total = scores.Math + scores.Reasoning + scores.GK + scores.GS;
+
+quizScreen.style.display="none";
+resultScreen.style.display="block";
+
+resultScreen.innerHTML=`
+<h2>${username.value}</h2>
+<h3>Total Score: ${total}</h3>
+<h4>Math: ${scores.Math}</h4>
+<h4>Reasoning: ${scores.Reasoning}</h4>
+<h4>GK: ${scores.GK}</h4>
+<h4>GS: ${scores.GS}</h4>
+<button onclick="showReview()">Review Answers 🔥</button>
+<button onclick="location.reload()">Restart</button>
+<div id="reviewBox"></div>
+`;
 }
 
 function showReview(){
-  let html="";
-  const reviewBox = document.getElementById("reviewBox");
-  questions.forEach((q,i)=>{
-    html+=`
-      <div class='review-card'>
-        <b>Q${i+1}: ${q.q}</b><br>
-        <span class='${answers[i]===q.answer?'correct':'wrong'}'>
-          Your Answer: ${answers[i]!=null?q.options[answers[i]]:'Not Attempted'}
-        </span><br>
-        <span class='correct'>Correct: ${q.options[q.answer]}</span>
-      </div>
-    `;
-  });
-  reviewBox.innerHTML=html;
+let html="";
+
+for(let sec in sectionAnswers){
+let qs = allQuestions.filter(q=>q.section===sec);
+let ans = sectionAnswers[sec];
+
+html += `<h3>${sec}</h3>`;
+
+for(let i=0;i<qs.length;i++){
+html+=`
+<div class='review-card'>
+<b>Q${i+1}: ${qs[i].q}</b><br>
+<span class='${ans[i]===qs[i].answer ? 'correct':'wrong'}'>
+Your Answer: ${ans[i]!=null ? qs[i].options[ans[i]] : 'Not Attempted'}
+</span><br>
+<span class='correct'>Correct: ${qs[i].options[qs[i].answer]}</span>
+</div>
+`;
+}
 }
 
-// ===================== ADMIN PANEL =====================
+document.getElementById("reviewBox").innerHTML = html;
+}
+
+// ADMIN PANEL
 function openAdmin(){
   const pass = prompt("Enter Admin Password");
-  if(pass!=="arijit@9064") return alert("Wrong Password");
+  if(pass!=="admin") return alert("Wrong Password");
 
   nameScreen.style.display="none";
   quizScreen.style.display="none";
@@ -238,38 +395,27 @@ function openAdmin(){
   resultScreen.innerHTML=`
     <h2>Admin Panel 😎🔥</h2>
 
-    <h3>Add Question</h3>
+    <h3>Add / Update Question</h3>
+    <input id='qId' type='hidden'>
     <input id='newQ' placeholder='Question'>
     <input id='opt1' placeholder='Option 1'>
     <input id='opt2' placeholder='Option 2'>
     <input id='opt3' placeholder='Option 3'>
     <input id='opt4' placeholder='Option 4'>
-    <select id='sectionSel'>
-      <option>Math</option>
-      <option>GK</option>
-      <option>GS</option>
-      <option>Reasoning</option>
-    </select>
-    <select id='answerSel'>
-      <option value='0'>Correct → Option 1</option>
-      <option value='1'>Correct → Option 2</option>
-      <option value='2'>Correct → Option 3</option>
-      <option value='3'>Correct → Option 4</option>
-    </select>
-    <button onclick='addQuestion()'>Add Question</button>
+    <select id='sectionSel'><option>Math</option><option>GK</option><option>GS</option><option>Reasoning</option></select>
+    <select id='answerSel'><option value='0'>Option 1</option><option value='1'>Option 2</option><option value='2'>Option 3</option><option value='3'>Option 4</option></select>
+    <button onclick='saveQuestion()'>Save Question</button>
 
-    <h3>All Questions</h3>
+    <h3>All Questions 😎</h3>
     <div id='adminQuestions'>Loading...</div>
 
-    <h3>Add Allowed User</h3>
+    <h3>Allowed Users 😎</h3>
     <input id='allowName' placeholder='Name'>
-    <input id='allowPhone' placeholder='Phone'>
-    <button onclick='addAllowedUser()'>Add User</button>
-
-    <h3>Allowed Users</h3>
+    <input id='allowPhone' placeholder='Phone (+91...)'>
+    <button onclick="addAllowedUser()">Add User</button>
     <div id='allowedList'>Loading...</div>
 
-    <h3>Login History</h3>
+    <h3>Student Logins 😎</h3>
     <button onclick="resetLogins()">Reset Logins 💀</button>
     <div id='loginList'>Loading...</div>
   `;
@@ -279,25 +425,17 @@ function openAdmin(){
   loadLogins();
 }
 
-// QUESTIONS FUNCTIONS
-function addQuestion(){
-  const q={
-    section:document.getElementById("sectionSel").value,
-    q:document.getElementById("newQ").value,
-    options:[
-      document.getElementById("opt1").value,
-      document.getElementById("opt2").value,
-      document.getElementById("opt3").value,
-      document.getElementById("opt4").value
-    ],
-    answer:Number(document.getElementById("answerSel").value)
-  };
-  if(!q.q) return alert("Enter Question");
-  db.collection("questions").add(q).then(()=>{
-    alert("Question Added 😎");
-    loadAdminQuestions();
-    loadQuestions();
-  });
+// ADMIN FUNCTIONS
+function saveQuestion(){
+  const qId = document.getElementById('qId').value;
+  const qText = document.getElementById('newQ').value.trim();
+  const opts = [document.getElementById('opt1').value.trim(), document.getElementById('opt2').value.trim(), document.getElementById('opt3').value.trim(), document.getElementById('opt4').value.trim()];
+  const section = document.getElementById('sectionSel').value;
+  const answer = Number(document.getElementById('answerSel').value);
+  if(!qText || opts.some(o=>!o)) return alert("Enter Question & All Options");
+  const qData = {q: qText, options: opts, section, answer};
+  if(qId){ db.collection('questions').doc(qId).update(qData).then(()=>{alert("Question Updated 😎🔥");clearQuestionForm();loadAdminQuestions();loadQuestions();});}
+  else{ db.collection('questions').add(qData).then(()=>{alert("Question Added 😎🔥");clearQuestionForm();loadAdminQuestions();loadQuestions();});}
 }
 
 function loadAdminQuestions(){
@@ -305,119 +443,92 @@ function loadAdminQuestions(){
     let html="";
     snapshot.forEach(doc=>{
       const q=doc.data();
-      html+=`
-        <div class='review-card'>
-          <b>${q.section}</b><br>${q.q}<br>
-          <button onclick="editQuestion('${doc.id}')">Edit</button>
-          <button onclick="deleteQuestion('${doc.id}')">Delete</button>
-        </div>
-      `;
+      html+=`<div class='review-card'><b>${q.section}</b> - ${q.q}<br>
+        <button onclick="editQuestion('${doc.id}')">Edit</button>
+        <button onclick="deleteQuestion('${doc.id}')">Delete</button>
+      </div>`;
     });
-    document.getElementById("adminQuestions").innerHTML = html;
-  });
-}
-
-function deleteQuestion(id){
-  if(!confirm("Delete Question?")) return;
-  db.collection("questions").doc(id).delete().then(()=>{
-    alert("Deleted 😎");
-    loadAdminQuestions();
-    loadQuestions();
+    document.getElementById("adminQuestions").innerHTML=html;
   });
 }
 
 function editQuestion(id){
-  db.collection("questions").doc(id).get().then(doc=>{
-    const q=doc.data();
-    resultScreen.innerHTML=`
-      <h3>Edit Question 😎</h3>
-      <input id='editQ' value="${q.q}">
-      <input id='edit1' value="${q.options[0]}">
-      <input id='edit2' value="${q.options[1]}">
-      <input id='edit3' value="${q.options[2]}">
-      <input id='edit4' value="${q.options[3]}">
-      <button onclick="updateQuestion('${id}')">Update</button>
-      <button onclick="openAdmin()">Back</button>
-    `;
+  db.collection('questions').doc(id).get().then(doc=>{
+    const q = doc.data();
+    document.getElementById('qId').value = id;
+    document.getElementById('newQ').value = q.q;
+    document.getElementById('opt1').value = q.options[0];
+    document.getElementById('opt2').value = q.options[1];
+    document.getElementById('opt3').value = q.options[2];
+    document.getElementById('opt4').value = q.options[3];
+    document.getElementById('sectionSel').value = q.section;
+    document.getElementById('answerSel').value = q.answer;
   });
 }
 
-function updateQuestion(id){
-  const updated={
-    q:document.getElementById("editQ").value,
-    options:[
-      document.getElementById("edit1").value,
-      document.getElementById("edit2").value,
-      document.getElementById("edit3").value,
-      document.getElementById("edit4").value
-    ]
-  };
-  db.collection("questions").doc(id).update(updated).then(()=>{
-    alert("Updated 😎🔥");
-    openAdmin();
-    loadQuestions();
-  });
-}
+function deleteQuestion(id){if(!confirm("Delete Question?")) return; db.collection("questions").doc(id).delete().then(()=>{alert("Deleted 😎");loadAdminQuestions();loadQuestions();});}
 
-// ALLOWED USERS FUNCTIONS
+function clearQuestionForm(){document.getElementById('qId').value='';document.getElementById('newQ').value='';document.getElementById('opt1').value='';document.getElementById('opt2').value='';document.getElementById('opt3').value='';document.getElementById('opt4').value='';document.getElementById('sectionSel').value='Math';document.getElementById('answerSel').value='0';}
+
+// ALLOWED USERS
 function addAllowedUser(){
-  const name = document.getElementById("allowName").value;
-  const phone = document.getElementById("allowPhone").value;
-  if(!name || !phone) return alert("Enter both Name and Phone");
-  db.collection("allowedUsers").add({name, phone}).then(()=>{
-    alert("User Added 😎");
-    loadAllowedUsers();
-    document.getElementById("allowName").value="";
-    document.getElementById("allowPhone").value="";
-  });
+  const name = document.getElementById("allowName").value.trim();
+  const phone = document.getElementById("allowPhone").value.trim();
+  if(!name||!phone) return alert("Enter Name & Phone");
+  db.collection("allowedUsers").add({name,phone}).then(()=>{alert("User Added");loadAllowedUsers();});
 }
-
 function loadAllowedUsers(){
   db.collection("allowedUsers").get().then(snapshot=>{
     let html="";
     snapshot.forEach(doc=>{
-      const u = doc.data();
+      const u=doc.data();
       html+=`
-        <div class='review-card'>
-          👤 ${u.name} | 📞 ${u.phone}
-          <button onclick="deleteAllowedUser('${doc.id}')">Delete</button>
-        </div>
-      `;
+      <div class='review-card'>
+        ${u.name} | ${u.phone}
+        <br>
+        <button onclick="deleteAllowedUser('${doc.id}')">Delete</button>
+      </div>`;
     });
-    document.getElementById("allowedList").innerHTML = html || "No Allowed Users Yet 😢";
+    document.getElementById("allowedList").innerHTML=html;
   });
 }
 
 function deleteAllowedUser(id){
-  if(!confirm("Delete this allowed user?")) return;
+  if(!confirm("Delete this user?")) return;
+
   db.collection("allowedUsers").doc(id).delete().then(()=>{
-    alert("Deleted 😎");
+    alert("User Deleted");
     loadAllowedUsers();
   });
 }
 
-// LOGINS FUNCTIONS
+// LOGINS
+function resetLogins(){
+  if(!confirm("Reset ALL Login History? 😈")) return;
+  db.collection("logins").get().then(snapshot=>{snapshot.forEach(doc=>doc.ref.delete());loadLogins();});
+}
+
 function loadLogins(){
   db.collection("logins").orderBy("time","desc").get().then(snapshot=>{
     let html="";
     snapshot.forEach(doc=>{
       const log = doc.data();
       const date = log.time.toDate().toLocaleString();
-      html += `<div class='review-card'>👤 ${log.name} | 📞 ${log.phone} | Score: ${log.score} <br>⏱ ${date}</div>`;
+
+      html += `
+      <div class='review-card'>
+        👤 ${log.name} | ${log.phone}<br>
+        🎯 Score: ${log.score || 0}<br>
+        ⏱ ${date}
+      </div>`;
     });
+
     document.getElementById("loginList").innerHTML = html || "No Logins Yet 😢";
   });
 }
+// INITIAL LOAD
+loadQuestions();
 
-function resetLogins(){
-  if(!confirm("Reset ALL Login History? 😈")) return;
-  db.collection("logins").get().then(snapshot=>{
-    snapshot.forEach(doc=>doc.ref.delete());
-    loadLogins();
-  });
-}
 </script>
-
 </body>
 </html>
-
