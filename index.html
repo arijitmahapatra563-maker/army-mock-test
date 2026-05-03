@@ -198,6 +198,9 @@ answers = Array(questions.length).fill(null);
 buildPalette();
 loadQ();
 timer=setInterval(updateTimer,1000);
+window.onbeforeunload = function () {
+  return "Exam is running. If you leave, your progress may be lost.";
+};
 });
 }
 
@@ -386,7 +389,7 @@ document.getElementById("reviewBox").innerHTML = html;
 // ADMIN PANEL
 function openAdmin(){
   const pass = prompt("Enter Admin Password");
-  if(pass!=="arijit@9064") return alert("Wrong Password");
+  if(pass!=="admin") return alert("Wrong Password");
 
   nameScreen.style.display="none";
   quizScreen.style.display="none";
