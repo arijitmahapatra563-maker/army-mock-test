@@ -2,24 +2,125 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ARMY PRACTICE SET BY ARIJIT</title>
+<title>SUCCESS POINT EXAM BY ARIJIT </title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-body{font-family:Arial;margin:0;background:white;}
-.header{background:#0f172a;color:white;padding:15px;text-align:center;font-size:22px;font-weight:bold;}
-.container{max-width:900px;margin:auto;padding:20px;}
-.card{border:1px solid #ddd;padding:20px;border-radius:10px;margin-top:20px;position:relative;}
-.section{font-size:14px;font-weight:bold;margin-bottom:10px;}
-.qno{font-size:13px;color:#475569;margin-bottom:5px;}
-.question{font-size:18px;margin-bottom:15px;}
-.option{padding:10px;border:1px solid #ccc;border-radius:6px;margin:8px 0;cursor:pointer;}
-.selected{background:skyblue;}
-.palette{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-top:20px;}
-.palette div{padding:8px;text-align:center;border-radius:4px;cursor:pointer;background:pink;}
-.attempted{background:skyblue !important;}
+body{
+font-family:Arial;
+margin:0;
+background:linear-gradient(to right,#f8fafc,#e0f2fe);
+}
+.header{
+background:linear-gradient(135deg,#0f172a,#2563eb,#06b6d4);
+color:white;
+padding:22px;
+text-align:center;
+font-size:30px;
+font-weight:900;
+letter-spacing:2px;
+text-transform:uppercase;
+font-family:'Trebuchet MS',sans-serif;
+box-shadow:0 4px 20px rgba(0,0,0,0.25);
+border-bottom:4px solid #38bdf8;
+text-shadow:2px 2px 8px rgba(0,0,0,0.4);
+}
+.card{
+  background: white;
+  border-radius: 16px;
+  padding: 22px;
+  margin-top: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.card, .question, #options{
+  position:relative;
+  z-index:2;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+
+  /* 🔥 FIX OVERLAP */
+  position:relative;
+  z-index:1;
+}
+body{
+  font-family:Arial;
+  margin:0;
+  background:linear-gradient(to right,#f8fafc,#e0f2fe);
+
+  /* 🔥 FIX */
+  overflow-x:hidden;
+}
+
+.palette div{
+  transform: translateZ(0);
+}
+.palette div{
+  width:40px;
+  height:40px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:8px;
+  cursor:pointer;
+
+  background:#f87171;
+  color:white;
+  font-weight:bold;
+  font-size:14px;
+
+  user-select:none;
+  transition:0.15s;
+}
+
+.palette{
+  position: fixed;
+  right: 20px;
+  top: 120px;
+
+  width: 240px;
+  max-height: 70vh;
+
+  display: grid;
+  grid-template-columns: repeat(5, 40px);
+  gap: 8px;
+
+  overflow-y: auto;
+
+  z-index: 9999;
+
+  /* 🔥 MAIN STABILITY FIX */
+  transform: translate3d(0,0,0);
+  backface-visibility: hidden;
+  will-change: transform;
+
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+  padding: 8px;
+
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+
+  /* 🔥 STOP OVERLAP DRAG FEEL */
+  pointer-events: auto;
+}
+.palette div:hover{
+  transform:scale(1.05);
+}
+.question,
+#options,
+.card{
+  position: relative;
+  z-index: 2;
+}
+.attempted{background:#22c55e !important;}
 .timer{position:absolute;right:20px;top:15px;font-weight:bold;color:red;}
 button{padding:10px 20px;border:none;background:#0f172a;color:white;border-radius:6px;cursor:pointer;margin-top:10px;}
 .submit-btn{
@@ -33,6 +134,27 @@ border-radius:14px;
 display:none;
 background:#dc2626;
 z-index:999;
+}
+.option{
+  padding:12px;
+  margin:10px 0;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  cursor:pointer;
+  background:white;
+  transition:0.2s;
+  font-size:16px;
+}
+
+.option:hover{
+  background:#e0f2fe;
+  transform:scale(1.01);
+}
+
+.selected{
+  background:#38bdf8 !important;
+  color:white !important;
+  border:2px solid #0ea5e9;
 }
 .review-card{margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:6px;}
 .correct{color:green;}
@@ -64,7 +186,7 @@ font-weight:bold;
 
 <body>
 
-<div class="header">ARMY PRACTICE SET BY ARIJIT</div>
+<div class="header">SUCCESS POINT EXAM BY ARIJIT </div>
 <button class="admin-btn" onclick="openAdmin()">Admin</button>
 
 <div class="container">
@@ -118,8 +240,9 @@ let questions = [];
 let allQuestions = [];
 let current = 0;
 let answers = [];
-let seconds = 3600, timer;
+let seconds = 2700, timer;
 let activeSection = "All";
+let loginDocId = "";
 let sectionAnswers = {
 Math: [],
 Reasoning: [],
@@ -144,15 +267,19 @@ const submitBtn = document.getElementById("submitBtn");
 
 // LOAD QUESTIONS
 function loadQuestions(){
-db.collection("questions").get().then(snapshot=>{
-allQuestions=[];
+  db.collection("questions").onSnapshot(snapshot=>{
+    allQuestions = [];
 
-snapshot.forEach(doc=>{
-allQuestions.push({...doc.data(), id:doc.id});
-});
-});
+    snapshot.forEach(doc=>{
+      allQuestions.push({
+        ...doc.data(),
+        id:doc.id
+      });
+    });
+
+    console.log("Questions Updated Live");
+  });
 }
-
 function filterSection(sec){
   activeSection = sec;
 
@@ -169,8 +296,7 @@ function filterSection(sec){
     sectionAnswers[sec] = Array(questions.length).fill(null);
   }
 
-  // ❌ DO NOT do: answers = sectionAnswers[sec]
-  answers = sectionAnswers[sec].slice();
+  answers = [...sectionAnswers[sec]];
 
   buildPalette();
   loadQ();
@@ -187,16 +313,43 @@ db.collection("allowedUsers")
 if(snapshot.empty) return alert("You are not allowed 😢");
 
 nameScreen.style.display="none";
+
+db.collection("logins").add({
+  name: username.value,
+  phone: phone.value,
+  time: firebase.firestore.FieldValue.serverTimestamp(),
+  score: 0
+}).then(doc=>{
+  loginDocId = doc.id;
+});
 quizScreen.style.display="block";
 submitBtn.style.display="block";
-activeSection = "All";
-questions = [...allQuestions];
-questions.sort(()=>Math.random()-0.5);
-questions = questions.slice(0,50);
-answers = Array(questions.length).fill(null);
+activeSection = "";
+questions = [];
+answers = [];
 
-buildPalette();
-loadQ();
+let sections = ["Math","Reasoning","GK","GS"];
+sections.sort(() => Math.random() - 0.5);
+
+document.getElementById("sectionTabs").innerHTML = "";
+
+sections.forEach(sec=>{
+document.getElementById("sectionTabs").innerHTML +=
+`<button onclick="filterSection('${sec}')">${sec}</button>`;
+});
+
+document.getElementById("sectionTabs").style.display="flex";
+question.innerText = "Select Section To Start";
+options.innerHTML = "";
+qno.innerText = "";
+section.innerText = "";
+palette.innerHTML = "";
+question.innerText = "Select Section To Start";
+options.innerHTML = "";
+qno.innerText = "";
+section.innerText = "";
+palette.innerHTML = "";
+
 timer=setInterval(updateTimer,1000);
 window.onbeforeunload = function () {
   return "Exam is running. If you leave, your progress may be lost.";
@@ -208,70 +361,48 @@ window.onbeforeunload = function () {
 
 // LOAD QUESTION
 function loadQ(){
-  const q=questions[current];
-  qno.innerText=`Question ${current+1} / ${questions.length}`;
-  section.innerText="Section: "+q.section;
-  question.innerText=q.q;
-  options.innerHTML="";
-q.options.forEach((opt,i)=>{
-  const div=document.createElement("div");
-  div.className="option";
-  div.innerText=opt;
+  const q = questions[current];
 
-  if(answers[current]===i) div.classList.add("selected");
+  qno.innerText = `Question ${current+1} / ${questions.length}`;
+  section.innerText = "Section: " + q.section;
+  question.innerText = q.q;
+  options.innerHTML = "";
 
-  div.onclick = () => {
-    const sec = questions[current].section;
+  q.options.forEach((opt,i)=>{
+    const div = document.createElement("div");
+    div.className = "option";
+    div.innerText = opt;
 
-    answers[current] = i;
-
-    if(!sectionAnswers[sec]){
-      sectionAnswers[sec] = [];
-    }
-
-    sectionAnswers[sec][current] = i;
-
-    updatePalette();
-
-    loadQ();   // 🔥 THIS IS THE FIX
-  };
-
-  options.appendChild(div);
-}); 
-  attemptCount.innerText=answers.filter(a=>a!=null).length;
+if(
+  sectionAnswers[activeSection] &&
+  sectionAnswers[activeSection][current] !== undefined &&
+  sectionAnswers[activeSection][current] === i
+){
+  div.classList.add("selected");
 }
- 
-function saveAndNext(){
-  const sec = questions[current].section;
+      
 
-  // save answer
-  if(!sectionAnswers[sec]){
-    sectionAnswers[sec] = [];
-  }
+    div.onclick = () => {
+      answers[current] = i;
+      sectionAnswers[activeSection][current] = i;
 
-  sectionAnswers[sec][current] = answers[current];
+      updatePalette();
 
-  // go next
-  if(current < questions.length - 1){
-    current++;
-    loadQ();
-  }
-}
+      document.querySelectorAll(".option").forEach(o=>{
+        o.classList.remove("selected");
+      });
 
-function prevQ(){
-  saveAnswer();
-  if(current > 0){
-    current--;
-    loadQ();
-  }
+      div.classList.add("selected");
+    };
+
+    options.appendChild(div);
+  });
+
+  attemptCount.innerText = answers.filter(a=>a!=null).length;
 }
 function saveAnswer(){
-  const sec = questions[current].section;
-  if(!sectionAnswers[sec]){
-    sectionAnswers[sec] = [];
-  }
-  sectionAnswers[sec][current] = answers[current];
-}
+  sectionAnswers[activeSection][current] = answers[current];
+}  
 function clearResponse(){
 
 if(!sectionAnswers[activeSection]){
@@ -279,46 +410,72 @@ if(!sectionAnswers[activeSection]){
 }
 
 answers[current] = null;
-sectionAnswers[activeSection][current] = null;
+
+const originalIndex = allQuestions.findIndex(x=>x.id===questions[current].id);
+sectionAnswers[activeSection][originalIndex] = null;
 
 updatePalette();
 loadQ();
 }
-function buildPalette(){
-  palette.innerHTML="";
 
-  for(let i=0;i<questions.length;i++){
-    const box=document.createElement("div");
-    box.innerText=i+1;
+function saveAndNext(){
 
-    box.onclick=()=>{
-      saveAnswer();
-      current=i;
-      loadQ();
-    };
+  const selected = answers[current];
 
-    palette.appendChild(box);
+  if(!sectionAnswers[activeSection]){
+    sectionAnswers[activeSection] = {};
+  }
+
+  sectionAnswers[activeSection][current] = selected ?? null;
+
+  if(current < questions.length - 1){
+    current++;
+    loadQ();
   }
 
   updatePalette();
 }
 
-function updatePalette(){
-  document.querySelectorAll(".palette div").forEach((box,i)=>{
-    box.classList.remove("attempted");
-
-    if(answers[i] != null){
-      box.classList.add("attempted");
-    }
-  });
+function prevQ(){
+  if(current > 0){
+    current--;
+    loadQ();
+  }
 }
 
-function updateTimer(){
-  const m=Math.floor(seconds/60);
-  const s=seconds%60;
-  time.innerText=`${m}:${s<10?'0':''}${s}`;
-  if(seconds<=0) submitQuiz();
-  seconds--;
+function buildPalette(){
+  palette.innerHTML = "";
+
+  const data = sectionAnswers[activeSection] || [];
+
+  for(let i=0;i<questions.length;i++){
+    const box = document.createElement("div");
+    box.innerText = i+1;
+
+    if(data[i] != null){
+      box.classList.add("attempted");
+    }
+
+    box.onclick = () => {
+      current = i;
+      loadQ();
+    };
+
+    palette.appendChild(box);
+  }
+}
+function updatePalette(){
+  const boxes = palette.children;
+
+  const data = sectionAnswers[activeSection] || [];
+
+  for(let i=0;i<boxes.length;i++){
+    if(data[i] != null && data[i] !== undefined){
+      boxes[i].classList.add("attempted");
+    } else {
+      boxes[i].classList.remove("attempted");
+    }
+  }
 }
 
 function submitQuiz(){
@@ -335,15 +492,20 @@ GS:0
 
 for(let sec in sectionAnswers){
 let qs = allQuestions.filter(q=>q.section===sec);
-let ans = sectionAnswers[sec];
+
 for(let i=0;i<qs.length;i++){
-  if(sectionAnswers[sec][i] === qs[i].answer){
-    scores[sec] += 2;
-  }
+if(sectionAnswers[sec][i] === qs[i].answer){
+scores[sec] += 2;
+}
 }
 }
 
 let total = scores.Math + scores.Reasoning + scores.GK + scores.GS;
+
+if(loginDocId){
+db.collection("logins").doc(loginDocId).update({
+score: total
+}).then(()=>{
 
 quizScreen.style.display="none";
 resultScreen.style.display="block";
@@ -351,14 +513,48 @@ resultScreen.style.display="block";
 resultScreen.innerHTML=`
 <h2>${username.value}</h2>
 <h3>Total Score: ${total}</h3>
+<h3 id="rankShow">Calculating Rank...</h3>
+
 <h4>Math: ${scores.Math}</h4>
 <h4>Reasoning: ${scores.Reasoning}</h4>
 <h4>GK: ${scores.GK}</h4>
 <h4>GS: ${scores.GS}</h4>
+
 <button onclick="showReview()">Review Answers 🔥</button>
+<button onclick="downloadPDF()">Download Review PDF</button>
 <button onclick="location.reload()">Restart</button>
+
 <div id="reviewBox"></div>
+
+<h3>🏆 Leaderboard</h3>
+<div id="studentLeaderboard">Loading...</div>
 `;
+
+loadStudentLeaderboard(total);
+});
+}
+}
+
+function updateTimer(){
+const m=Math.floor(seconds/60);
+const s=seconds%60;
+
+time.innerText=`${m}:${s<10?'0':''}${s}`;
+
+// Last 5 minutes = Red
+if(seconds <= 300){
+time.style.color="red";
+time.style.fontWeight="bold";
+time.style.fontSize="24px";
+}else{
+time.style.color="green";
+}
+
+if(seconds<=0){
+submitQuiz();
+}
+
+seconds--;
 }
 
 function showReview(){
@@ -386,6 +582,37 @@ Your Answer: ${ans[i]!=null ? qs[i].options[ans[i]] : 'Not Attempted'}
 document.getElementById("reviewBox").innerHTML = html;
 }
 
+function downloadPDF(){
+  showReview();
+
+  const printContent = `
+    <html>
+    <head>
+      <title>Review PDF</title>
+      <style>
+        body{font-family:Arial;padding:20px;}
+        .correct{color:green;}
+        .wrong{color:red;}
+        .review-card{
+          border:1px solid #ddd;
+          padding:10px;
+          margin:10px 0;
+          border-radius:8px;
+        }
+      </style>
+    </head>
+    <body>
+      <h2>${username.value} - Exam Review</h2>
+      ${document.getElementById("reviewBox").innerHTML}
+    </body>
+    </html>
+  `;
+
+  const win = window.open("", "", "width=900,height=700");
+  win.document.write(printContent);
+  win.document.close();
+  win.print();
+}
 // ADMIN PANEL
 function openAdmin(){
   const pass = prompt("Enter Admin Password");
@@ -396,6 +623,7 @@ function openAdmin(){
   resultScreen.style.display="block";
 
   resultScreen.innerHTML=`
+  
     <h2>Admin Panel 😎🔥</h2>
 
     <h3>Add / Update Question</h3>
@@ -421,11 +649,15 @@ function openAdmin(){
     <h3>Student Logins 😎</h3>
     <button onclick="resetLogins()">Reset Logins 💀</button>
     <div id='loginList'>Loading...</div>
+<h3>Leaderboard 🏆</h3>
+<button onclick="resetLeaderboard()">Reset Leaderboard</button>
+<div id='leaderboard'>Loading...</div>
   `;
 
   loadAdminQuestions();
   loadAllowedUsers();
   loadLogins();
+  loadLeaderboard();
 }
 
 // ADMIN FUNCTIONS
@@ -528,6 +760,88 @@ function loadLogins(){
 
     document.getElementById("loginList").innerHTML = html || "No Logins Yet 😢";
   });
+}
+
+function loadStudentLeaderboard(total){
+db.collection("logins")
+.orderBy("score","desc")
+.limit(10)
+.get()
+.then(snapshot=>{
+let html="";
+let rank=1;
+let userRank=1;
+
+snapshot.forEach(doc=>{
+const log=doc.data();
+
+if(log.score > total){
+userRank++;
+}
+
+html+=`
+<div class='review-card'>
+🏆 Rank ${rank}<br>
+👤 ${log.name}<br>
+🎯 Score: ${log.score}
+</div>
+`;
+
+rank++;
+});
+
+document.getElementById("studentLeaderboard").innerHTML=html;
+document.getElementById("rankShow").innerHTML="🏆 Your Rank: "+userRank;
+});
+}
+
+function resetLeaderboard(){
+if(!confirm("Reset Leaderboard?")) return;
+
+db.collection("logins").get().then(snapshot=>{
+
+let batch = db.batch();
+
+snapshot.forEach(doc=>{
+batch.update(doc.ref,{
+score:0
+});
+});
+
+batch.commit().then(()=>{
+alert("Leaderboard Reset Done 🔥");
+loadLeaderboard();
+loadLogins();
+});
+});
+}
+
+function loadLeaderboard(){
+  db.collection("logins")
+    .orderBy("score","desc")
+    .limit(10)
+    .get()
+    .then(snapshot=>{
+      let html="";
+      let rank=1;
+
+      snapshot.forEach(doc=>{
+        const log = doc.data();
+
+        html += `
+        <div class='review-card'>
+          🏆 Rank ${rank}<br>
+          👤 ${log.name}<br>
+          🎯 Score: ${log.score}
+        </div>
+        `;
+
+        rank++;
+      });
+
+      document.getElementById("leaderboard").innerHTML =
+        html || "No Scores Yet";
+    });
 }
 // INITIAL LOAD
 loadQuestions();
