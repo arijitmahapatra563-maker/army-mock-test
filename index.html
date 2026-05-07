@@ -9,9 +9,37 @@
 
 <style>
 body{
-font-family:Arial;
-margin:0;
-background:linear-gradient(to right,#f8fafc,#e0f2fe);
+  font-family:Arial;
+  margin:0;
+  overflow-x:hidden;
+  position:relative;
+
+  background-image:
+  linear-gradient(rgba(15,23,42,0.45), rgba(15,23,42,0.45)),
+  url("https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1920px-Flag_of_India.svg.png");
+
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+
+  background:
+  linear-gradient(135deg,
+  rgba(255,153,51,0.18),
+  rgba(255,255,255,0.08),
+  rgba(19,136,8,0.18));
+
+  backdrop-filter:blur(3px);
+  z-index:-1;
 }
 .header{
 background:linear-gradient(135deg,#0f172a,#2563eb,#06b6d4);
@@ -40,62 +68,236 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.4);
   position:relative;
   z-index:2;
 }
+.card{
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(8px);
+  border-radius:16px;
+  padding:22px;
+  margin-top:20px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.18);
+  border:1px solid rgba(255,255,255,0.4);
+}
+
 .container{
-  max-width:900px;
+  max-width:1200px;
   margin:auto;
   padding:20px;
-
-  /* 🔥 FIX OVERLAP */
   position:relative;
-  z-index:1;
 }
-body{
-  font-family:Arial;
-  margin:0;
-  background:linear-gradient(to right,#f8fafc,#e0f2fe);
 
-  /* 🔥 FIX */
-  overflow-x:hidden;
+#quizScreen{
+  padding-right:320px;
+}
+
+@media (max-width:768px){
+  .palette{
+    position:static;
+    width:100%;
+    margin-top:20px;
+  }
+
+  #quizScreen{
+    padding-right:20px;
+  }
+}
+  
+.palette{
+  box-sizing:border-box;
 }
 
 .palette div{
   transform: translateZ(0);
 }
+
 .palette div{
   width:40px;
   height:40px;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
-  border-radius:8px;
+  border-radius:10px;
   cursor:pointer;
-
-  background:#f87171;
+  background:linear-gradient(135deg,#dc2626,#fb7185);
   color:white;
   font-weight:bold;
   font-size:14px;
-
-  user-select:none;
-  transition:0.15s;
+  transition:0.2s;
 }
 
+
 .palette{
-  position: fixed;
-  right: 20px;
-  top: 120px;
+  position:absolute;
+  right:20px;
+  top:170px;
 
-  width: 240px;
-  max-height: 70vh;
+  width:240px;
+  display:grid;
+  grid-template-columns:repeat(5,40px);
+  gap:8px;
 
-  display: grid;
-  grid-template-columns: repeat(5, 40px);
-  gap: 8px;
+  background:rgba(255,255,255,0.95);
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.15);
+  z-index:5;
+}
 
-  overflow-y: auto;
+@media (max-width: 768px){
 
-  z-index: 9999;
+  .timer{
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: auto;
+    z-index: 10000;
+    background: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+}
+  .palette{
+    top: 60px;   /* 🔥 নিচে নামিয়ে দিলাম */
+    right: 10px;
+    width: 160px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+
+.palette-indicator{
+  position:fixed;
+  right:20px;
+  top:390px;
+  width:220px;
+  background:white;
+  border-radius:12px;
+  padding:15px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  z-index:9999;
+}
+
+.palette-indicator div{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:8px 0;
+}
+
+.palette-indicator span{
+  width:18px;
+  height:18px;
+  border-radius:4px;
+  display:inline-block;
+}
+
+.red-box{background:red;}
+.green-box{background:green;}
+.blue-box{background:blue;}
+
+.attempted{
+  background:green !important;
+}
+
+.selected{
+  background:blue !important;
+}
+
+  
+
+  
+.section-btn{
+  padding:10px 18px;
+  font-weight:bold;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  color:white;
+  transition:0.3s;
+}
+
+.not-attempted{
+  background:linear-gradient(135deg,#dc2626,#fb7185);
+}
+
+.attempted-sec{
+  background:linear-gradient(135deg,#166534,#22c55e);
+}
+
+
+  #quizScreen{
+    padding-top: 60px;
+  }
+}
+.selected{
+background:#2563eb !important;
+color:white !important;
+box-shadow:0 0 15px rgba(37,99,235,0.45);
+}
+
+#quizScreen *{
+  position:relative;
+  z-index:2;
+}
+
+#quizScreen{
+  position:relative;
+  overflow:hidden;
+}
+
+#quizScreen::before{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:320px;
+  height:320px;
+  transform:translate(-50%,-50%);
+
+  background-image:url("https://upload.wikimedia.org/wikipedia/commons/1/17/Ashoka_Chakra.svg");
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+
+  opacity:0.15;
+  z-index:0;
+  pointer-events:none;
+}
+
+
+@keyframes spinChakra{
+from{transform:translate(-50%,-50%) rotate(0deg);}
+to{transform:translate(-50%,-50%) rotate(360deg);}
+}
+
+#quizScreen::before{
+animation:spinChakra 40s linear infinite;
+}
+
+
+.palette{
+position:fixed !important;
+right:20px !important;
+top:170px !important;
+width:240px !important;
+display:grid !important;
+grid-template-columns:repeat(5,40px) !important;
+gap:8px !important;
+background:white !important;
+padding:10px !important;
+border-radius:12px !important;
+z-index:99999 !important;
+}
+
+.palette-indicator{
+position:fixed !important;
+right:20px !important;
+top:400px !important;
+width:220px !important;
+background:white !important;
+padding:15px !important;
+border-radius:12px !important;
+z-index:99999 !important;
+}
 
   /* 🔥 MAIN STABILITY FIX */
   transform: translate3d(0,0,0);
@@ -120,7 +322,14 @@ body{
   position: relative;
   z-index: 2;
 }
-.attempted{background:#22c55e !important;}
+
+.attempted{
+  background:linear-gradient(135deg,#14532d,#16a34a) !important;
+  color:white !important;
+  box-shadow:0 0 18px rgba(34,197,94,0.7);
+  border:2px solid #22c55e;
+}
+
 .timer{position:absolute;right:20px;top:15px;font-weight:bold;color:red;}
 button{padding:10px 20px;border:none;background:#0f172a;color:white;border-radius:6px;cursor:pointer;margin-top:10px;}
 .submit-btn{
@@ -164,7 +373,8 @@ input,select{padding:10px;width:100%;margin:5px 0;}
 .watermark{
 position:fixed;
 bottom:15px;
-right:20px;
+right:350px;
+
 opacity:0.15;
 font-size:42px;
 font-weight:bold;
@@ -214,16 +424,28 @@ font-weight:bold;
 <button onclick="saveAndNext()">Save & Next</button>
 <button onclick="clearResponse()">Clear Response</button>
 
-<div>Attempted: <span id="attemptCount">0</span>/50</div>
+<div style="font-size:18px;font-weight:bold;margin-top:15px;color:#0f172a;">
+Attempted: <span id="attemptCount">0</span>/<span id="totalQ">0</span>
+</div>
+
 <div class="palette" id="palette"></div>
+
+
+
+
+
+<div class="palette-indicator" style="display:block;">
+
+  <div><span class="red-box"></span> Not Attempted</div>
+  <div><span class="green-box"></span> Attempted</div>
+  <div><span class="blue-box"></span> Current</div>
+</div>
+
 </div>
 
 <div id="resultScreen" class="card" style="display:none"></div>
 
-</div>
-
 <button class="submit-btn" id="submitBtn" onclick="submitQuiz()">SUBMIT TEST</button>
-
 <div class="watermark">MISSION ARMY BY ARIJIT</div>
 
 <script>
@@ -298,8 +520,14 @@ function filterSection(sec){
 
   answers = [...sectionAnswers[sec]];
 
+  document.getElementById("totalQ").innerText = questions.length;
+
   buildPalette();
+  updateSectionIndicator();
   loadQ();
+attemptCount.innerText =
+(sectionAnswers[activeSection] || [])
+.filter(a => a != null).length;
 }
 
 function startQuiz(){
@@ -335,7 +563,7 @@ document.getElementById("sectionTabs").innerHTML = "";
 
 sections.forEach(sec=>{
 document.getElementById("sectionTabs").innerHTML +=
-`<button onclick="filterSection('${sec}')">${sec}</button>`;
+`<button id="btn-${sec}" class="section-btn not-attempted" onclick="filterSection('${sec}')">${sec}</button>`;
 });
 
 document.getElementById("sectionTabs").style.display="flex";
@@ -397,9 +625,10 @@ if(
 
     options.appendChild(div);
   });
-
-  attemptCount.innerText = answers.filter(a=>a!=null).length;
-}
+attemptCount.innerText =
+(sectionAnswers[activeSection] || [])
+.filter(a => a != null).length;
+ }
 function saveAnswer(){
   sectionAnswers[activeSection][current] = answers[current];
 }  
@@ -415,7 +644,9 @@ const originalIndex = allQuestions.findIndex(x=>x.id===questions[current].id);
 sectionAnswers[activeSection][originalIndex] = null;
 
 updatePalette();
+updateSectionIndicator();
 loadQ();
+
 }
 
 function saveAndNext(){
@@ -434,6 +665,10 @@ function saveAndNext(){
   }
 
   updatePalette();
+updateSectionIndicator();
+attemptCount.innerText =
+(sectionAnswers[activeSection] || [])
+.filter(a => a != null).length;
 }
 
 function prevQ(){
@@ -478,6 +713,25 @@ function updatePalette(){
   }
 }
 
+
+function updateSectionIndicator(){
+  for(let sec in sectionAnswers){
+    const btn = document.getElementById(`btn-${sec}`);
+    if(!btn) continue;
+
+    const attempted = sectionAnswers[sec].filter(a => a != null).length;
+
+    if(attempted > 0){
+      btn.classList.remove("not-attempted");
+      btn.classList.add("attempted-sec");
+    }else{
+      btn.classList.remove("attempted-sec");
+      btn.classList.add("not-attempted");
+    }
+  }
+}
+
+
 function submitQuiz(){
 window.onbeforeunload = null;
 clearInterval(timer);
@@ -507,8 +761,8 @@ db.collection("logins").doc(loginDocId).update({
 score: total
 }).then(()=>{
 
-quizScreen.style.display="none";
-resultScreen.style.display="block";
+document.getElementById("quizScreen").style.display = "none";
+document.getElementById("resultScreen").style.display = "block";
 
 resultScreen.innerHTML=`
 <h2>${username.value}</h2>
