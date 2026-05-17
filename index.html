@@ -334,7 +334,7 @@ z-index:99999 !important;
 button{padding:10px 20px;border:none;background:#0f172a;color:white;border-radius:6px;cursor:pointer;margin-top:10px;}
 .submit-btn{
 position:fixed;
-bottom:20px;
+bottom:35px;
 right:20px;
 padding:18px 35px;
 font-size:22px;
@@ -411,6 +411,9 @@ font-weight:bold;
 <div id="quizScreen" class="card" style="display:none">
 <div class="timer">Time Left: <span id="time">60:00</span></div>
 <div id="sectionTabs">
+
+<div id="liveBanner" style="font-weight:bold;color:red;font-size:18px;"></div>
+
 <button onclick="filterSection('Math')">Math</button>
 <button onclick="filterSection('Reasoning')">Reasoning</button>
 <button onclick="filterSection('GK')">GK</button>
@@ -465,6 +468,7 @@ let answers = [];
 let seconds = 2700, timer;
 let activeSection = "All";
 let loginDocId = "";
+let examLive = false;
 let sectionAnswers = {
 Math: [],
 Reasoning: [],
@@ -502,6 +506,33 @@ function loadQuestions(){
     console.log("Questions Updated Live");
   });
 }
+
+function checkExamLive(){
+  db.collection("settings").doc("exam")
+  .onSnapshot(doc=>{
+    if(doc.exists){
+      examLive = doc.data().live;
+const banner = document.getElementById("liveBanner");
+
+if(banner){
+  banner.innerText = examLive 
+    ? "🔥 EXAM IS LIVE NOW - START YOUR TEST"
+    : "⛔ WAIT FOR ADMIN TO START EXAM";
+}
+
+
+      // 🔥 UI UPDATE
+      const statusText = examLive ? "🔥 EXAM IS LIVE" : "⛔ EXAM STOPPED";
+
+      console.log(statusText);
+
+      // Admin panel text update (if exists)
+      const el = document.getElementById("liveStatusText");
+      if(el) el.innerText = statusText;
+    }
+  });
+}
+
 function filterSection(sec){
   activeSection = sec;
 
@@ -531,6 +562,11 @@ attemptCount.innerText =
 }
 
 function startQuiz(){
+
+if(!examLive){
+  return alert("⛔ Exam is not LIVE yet. Please wait for Admin 🔥");
+}
+
 if(!username.value || !phone.value) return alert("Enter both Name and Phone");
 
 db.collection("allowedUsers")
@@ -789,6 +825,26 @@ loadStudentLeaderboard(total);
 }
 }
 
+
+function goLive(){
+  db.collection("settings").doc("exam").set({
+    live:true
+  });
+
+  document.getElementById("liveStatusText").innerText = "🔥 EXAM IS LIVE NOW";
+  alert("Exam Started 🔥");
+}
+
+function stopLive(){
+  db.collection("settings").doc("exam").set({
+    live:false
+  });
+
+  document.getElementById("liveStatusText").innerText = "⛔ EXAM STOPPED";
+  alert("Exam Stopped ❌");
+}
+
+
 function updateTimer(){
 const m=Math.floor(seconds/60);
 const s=seconds%60;
@@ -894,6 +950,19 @@ function openAdmin(){
     <h3>All Questions 😎</h3>
     <div id='adminQuestions'>Loading...</div>
 
+
+<h3>🔥 Exam Control</h3>
+
+<button onclick="goLive()" style="background:green;color:white;padding:10px;">
+START EXAM (LIVE)
+</button>
+
+<button onclick="stopLive()" style="background:red;color:white;padding:10px;">
+STOP EXAM
+</button>
+
+<p id="liveStatusText"></p>
+
     <h3>Allowed Users 😎</h3>
     <input id='allowName' placeholder='Name'>
     <input id='allowPhone' placeholder='Phone (+91...)'>
@@ -903,6 +972,11 @@ function openAdmin(){
     <h3>Student Logins 😎</h3>
     <button onclick="resetLogins()">Reset Logins 💀</button>
     <div id='loginList'>Loading...</div>
+
+
+
+
+
 <h3>Leaderboard 🏆</h3>
 <button onclick="resetLeaderboard()">Reset Leaderboard</button>
 <div id='leaderboard'>Loading...</div>
@@ -1099,6 +1173,8 @@ function loadLeaderboard(){
 }
 // INITIAL LOAD
 loadQuestions();
+checkExamLive();
+
 
 </script>
 </body>
