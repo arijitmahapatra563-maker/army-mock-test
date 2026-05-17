@@ -533,6 +533,9 @@ if(banner){
   });
 }
 
+
+
+
 function filterSection(sec){
   activeSection = sec;
 
@@ -1175,6 +1178,31 @@ function loadLeaderboard(){
 loadQuestions();
 checkExamLive();
 
+
+let cheatCount = 0;
+
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden) {
+    cheatCount++;
+
+    alert("⚠️ WARNING! Tab switch detected");
+
+    if (cheatCount >= 2) {
+      alert("❌ CHEATING DETECTED! Auto submitting exam");
+      submitQuiz();
+    }
+  }
+});
+
+document.addEventListener("copy", function(e){
+  e.preventDefault();
+  alert("⚠️ Copying is disabled in this exam!");
+});
+
+document.addEventListener("paste", function(e){
+  e.preventDefault();
+  alert("⚠️ Pasting is disabled in this exam!");
+});
 
 </script>
 </body>
